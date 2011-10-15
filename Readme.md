@@ -1,0 +1,33 @@
+Stacker
+=======
+
+Stacker is a simple apt package to tgz convertor. It uses Vagrant and an Ubuntu 10.04 image to perform apt operations.
+
+Quick Start
+===========
+
+First, make sure your development machine has [VirtualBox](http://www.virtualbox.org) installed.
+
+```bash
+$ bundle install
+$ bin/vstack --ppa ppa:pitti/postgresql postgresql
+-> Starting Vagrant
+       [default] Downloading box: http://files.vagrantup.com/lucid64.box
+       ...
+       [default] VM already created. Booting if its not already running...
+-> Adding Repository ppa:pitti/postgresql
+-> Updating apt
+-> Resolving postgresql 9.1
+       Downloading and Extracting ssl-cert_1.0.23ubuntu2_all.deb
+       Downloading and Extracting libpq5_9.1.1-1~lucid_amd64.deb
+       Downloading and Extracting postgresql-client-common_124~lucid_all.deb
+       Downloading and Extracting postgresql-client-9.1_9.1.1-1~lucid_amd64.deb
+       Downloading and Extracting postgresql-common_124~lucid_all.deb
+       Downloading and Extracting postgresql-9.1_9.1.1-1~lucid_amd64.deb
+       Downloading and Extracting postgresql_9.1+124~lucid_all.deb
+-> Stacking /tmp/stacklets/postgresql-9.1.tgz
+```
+
+The resulting stacklet will be in ./stacklets/postgresql-9.1.tgz
+
+Subsequent runs will be much quicker, provided the box is not removed.
