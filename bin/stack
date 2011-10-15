@@ -23,7 +23,7 @@ done
 echo '-> Updating apt'
 sudo apt-get update &> /dev/null
 
-ver=$(apt-cache show $1 | grep Version | head -1 | cut -d" " -f2 | egrep -o '^[0-9.]+')
+ver=$(apt-cache show $1 | grep Version | head -1 | cut -d" " -f2 | egrep -o '^[0-9.:]+')
 echo '-> Resolving' $pkg $ver
 
 tmp=$(mktemp -d)
