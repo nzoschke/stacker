@@ -1,0 +1,44 @@
+#!/bin/bash
+while [ "$1" != "" ]; do
+  case $1 in
+    -p | --ppa )  shift
+                  ppas="$ppas $1"
+                  ;;
+    * )           break
+                  ;;
+  esac
+  shift
+done
+
+pkg=$1
+pkgs=$*
+[[ $pkg = "" ]] && { echo usage: stack [--ppa PPA ...] PACKAGE; exit 1; }
+
+sudo rm -f /etc/apt/sources.list.d/*
+for p in $ppas; do 
+  echo '-> Adding Repository' $p
+  sudo apt-add-repository $p &> /dev/null
+done
+
+echo '-> Updating apt'
+sudo apt-get update &> /dev/null
+
+ver=$(apt-cache show $1 | grep Version | head -1 | cut -d" " -f2 | egrep -o '^[0-9.]+')
+echo '-> Resolving' $pkg $ver
+
+tmp=$(mktemp -d)
+trap "rm -rf $tmp" EXIT
+
+cd $tmp
+urls=$(apt-get --yes --print-uris install $pkgs | egrep -o --regex '[a-z]+://[^ ]*deb') || exit 1
+for u in $urls; do
+  deb=$(basename $u)
+  echo Downloading and Extracting $deb | sed "s/^/       /"
+  wget -q $u
+  ar -x $deb
+  tar xfz data.tar.gz
+done
+
+stacklet=/tmp/stacklets/$pkg-$ver.tgz
+echo '-> Stacking' $stacklet
+tar cfz $stacklet etc/ usr/ var/

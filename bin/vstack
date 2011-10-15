@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo '-> Starting Vagrant'
+vagrant up | sed "s/^/       /"
+vagrant ssh -c "/vagrant/bin/stack $*"
