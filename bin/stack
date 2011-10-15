@@ -41,4 +41,4 @@ done
 
 stacklet=/tmp/stacklets/$pkg-$ver.tgz
 echo '-> Stacking' $stacklet
-tar cfz $stacklet etc/ usr/ var/
+tar cfz $stacklet $(find ./* -maxdepth 0 -type d)
