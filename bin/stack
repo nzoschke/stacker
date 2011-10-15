@@ -12,7 +12,7 @@ done
 
 pkg=$1
 pkgs=$*
-[[ $pkg = "" ]] && { echo usage: stack [--ppa PPA ...] PACKAGE; exit 1; }
+[[ $pkg = "" ]] && { echo usage: stack [--ppa PPA ...] PACKAGE ...; exit 1; }
 
 sudo rm -f /etc/apt/sources.list.d/*
 for p in $ppas; do 
