@@ -1,44 +1,45 @@
 #!/bin/bash
-while [ "$1" != "" ]; do
-  case $1 in
-    -p | --ppa )  shift
-                  ppas="$ppas $1"
-                  ;;
-    * )           break
-                  ;;
-  esac
-  shift
-done
+set -xo pipefail
 
-pkg=$1
-pkgs=$*
-[[ $pkg = "" ]] && { echo usage: stack [--ppa PPA ...] PACKAGE ...; exit 1; }
+display() { echo -e "\n----->" $*; }
+abort()   { echo $* ; exit 1; }
+indent()  { sed -u "s/^/       /"; }
 
-sudo rm -f /etc/apt/sources.list.d/*
-for p in $ppas; do 
-  echo '-> Adding Repository' $p
-  sudo apt-add-repository $p &> /dev/null
-done
+[ $# -eq 1 ] && [ -f $1 ] || abort usage: $(basename $0) SCRIPT
 
-echo '-> Updating apt'
-sudo apt-get update &> /dev/null
+SCRIPT=$1
+BASE_TARGET=lucid
+BASE_TARGET_DIR=$BASE_TARGET-root
+TARGET=$(basename ${SCRIPT%.*}) # /vagrant/stacks/cedar-2.0.0.sh => cedar-2.0.0
+TARGET_DIR=$TARGET-root
+MOUNT_DIR=/mnt/$TARGET
 
-ver=$(apt-cache show $1 | grep Version | head -1 | cut -d" " -f2 | egrep -o '^[0-9.:]+')
-echo '-> Resolving' $pkg $ver
+# find or create a base lucid debootstrap
+if [ ! -d $BASE_TARGET_DIR ]; then
+  display Creating template lucid debootstrap
+  (
+    apt-get update > /dev/null
+    apt-get install -y debootstrap
+    debootstrap --variant=minbase lucid $BASE_TARGET_DIR
+  ) 2>&1 | indent
+fi
 
-tmp=$(mktemp -d)
-trap "rm -rf $tmp" EXIT
+# rsync into work dir
+display Copying template lucid to target dir
+rsync -a --delete $BASE_TARGET_DIR/ $TARGET_DIR/
 
-cd $tmp
-urls=$(apt-get --yes --print-uris install $pkgs | egrep -o --regex '[a-z]+://[^ ]*deb') || exit 1
-for u in $urls; do
-  deb=$(basename $u)
-  echo Downloading and Extracting $deb | sed "s/^/       /"
-  wget -q $u
-  ar -x $deb
-  tar xfz data.tar.gz
-done
+# chroot and build
+display Mounting host in target dir
+mount --bind /dev  $TARGET_DIR/dev
+mount --bind /proc $TARGET_DIR/proc
+function on_exit() {
+  umount $TARGET_DIR/dev $TARGET_DIR/proc 2>&1 | indent
+}
+trap on_exit EXIT
 
-stacklet=/tmp/stacklets/$pkg-$ver.tgz
-echo '-> Stacking' $stacklet
-tar cfz $stacklet $(find ./* -maxdepth 0 -type d)
+display Building inside target
+(
+  cp $SCRIPT $TARGET_DIR/tmp/build.sh
+  chroot $TARGET_DIR /tmp/build.sh
+) 2>&1 | indent
+

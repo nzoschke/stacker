@@ -47,3 +47,4 @@ If multiple PACKAGE options are specified, the entire set of packages and
 dependencies will be archived together. The first package specified determines
 the name of the stacklet file.
 ```
+
