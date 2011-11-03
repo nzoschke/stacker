@@ -9,5 +9,5 @@ Vagrant::Config.run do |config|
     ) > /dev/null
   EOF
 
-  config.vm.share_folder("stacklets", "/tmp/stacklets", "stacklets/")
+  config.vm.share_folder("repo", "/tmp/repo", "repo/")
 end

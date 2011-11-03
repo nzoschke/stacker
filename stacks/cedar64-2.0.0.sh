@@ -28,15 +28,37 @@ apt-get install -y --force-yes openssh-client openssh-server
 # build packages from src
 cd /tmp
 
-(
-  mkdir root/ data/
-  curl -O http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.2-p290.tar.gz
-  tar xzf ruby-1.9.2-p290.tar.gz
-  cd ruby-1.9.2-p290
-  ./configure --prefix=/usr/local
-  make
-  make install
 
+
+
+stacklet squashfs-tools_3.3 --source http://launchpadlibrarian.net/11397899/squashfs-tools_3.3-1ubuntu2_amd64.deb
+stacklet postgresql-9.1     --source postgresql --ppa ppa:pitti/postgresql
+stacklet ruby-1.9.2-p290    --source http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.2-p290.tar.gz --dest s3://stacklets/ --deb -s <<EOF
+  configure --prefix=/usr/local
+  make && make install
+EOF
+
+s3cmd put ruby-1.9.2-p290.* s3://stacklets/
+
+STACKLET=ruby-1.9.2-p290                                              \
+SOURCES="http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.2-p290.tar.gz"  \
+package <<EOF
+  
+EOF
+
+(
+  STACKLET="ruby-1.9.2-p290"
+  mkdir root/ data/
+  (
+    cd root
+    curl -O http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.2-p290.tar.gz | tar xfz root/
+    configure --prefix=/usr/local
+    make && make install DESTDIR=../data/
+  )
+
+  fpm -s dir -t deb -n $STACKLET -v 1.0 data/
+  s3cmd put $STACKLET.deb s3://stacklets/
+  s3cmd url --ttl=10000000 s3://stacklets/$STACKLET.deb
 )
 
 (
@@ -59,7 +81,7 @@ cd /tmp
   mkdir root/ data/
   stacklet="openjdk-6-jdk"
   pkgs="openjdk-6-jdk openjdk-6-jre-headless"
-  urls=$(apt-get --yes --print-uris install $pkgs | egrep -o --regex '[a-z]+://[^ ]*deb')
+  urls=$(apt-get -y --print-uris install $pkgs | egrep -o --regex '[a-z]+://[^ ]*deb')
   mkdir data
   for u in $urls; do
     deb=$(basename $u)

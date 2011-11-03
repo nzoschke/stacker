@@ -1,11 +1,7 @@
 #!/bin/bash
-set -xo pipefail
+source stacker.rc
 
-display() { echo -e "\n----->" $*; }
-abort()   { echo $* ; exit 1; }
-indent()  { sed -u "s/^/       /"; }
-
-[ $# -eq 1 ] && [ -f $1 ] || abort usage: $(basename $0) SCRIPT
+[ $UID -eq 0 ] && [ $# -eq 1 ] && [ -f $1 ] || abort usage: sudo $(basename $0) SCRIPT
 
 SCRIPT=$1
 BASE_TARGET=lucid
@@ -32,14 +28,21 @@ rsync -a --delete $BASE_TARGET_DIR/ $TARGET_DIR/
 display Mounting host in target dir
 mount --bind /dev  $TARGET_DIR/dev
 mount --bind /proc $TARGET_DIR/proc
+mount --bind /tmp  $TARGET_DIR/tmp
 function on_exit() {
-  umount $TARGET_DIR/dev $TARGET_DIR/proc 2>&1 | indent
+  umount $TARGET_DIR/dev $TARGET_DIR/proc $TARGET_DIR/tmp 2>&1 | indent
 }
 trap on_exit EXIT
 
-display Building inside target
-(
-  cp $SCRIPT $TARGET_DIR/tmp/build.sh
-  chroot $TARGET_DIR /tmp/build.sh
-) 2>&1 | indent
+mkdir -p $TARGET_DIR/tmp/bin/
+cp /etc/resolv.conf $TARGET_DIR/etc
+cp $BIN_DIR/* $SCRIPT $TARGET_DIR/tmp/bin/
+chroot $TARGET_DIR env BASH_ENV=/tmp/bin/stacker.rc bash /tmp/bin/$(basename $SCRIPT)
+
+
+# display Building inside target
+# (
+#   cp $SCRIPT $TARGET_DIR/tmp/build.sh
+#   chroot $TARGET_DIR /tmp/build.sh
+# ) 2>&1 | indent
 
